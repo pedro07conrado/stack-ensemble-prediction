@@ -27,7 +27,7 @@ def get_hyper_params_lightgbm(X_train, y_train):
     return grid_search.best_params_
 
 
-def run_model_lightgbm(treino_path, teste_path, useGridSearch=True):
+def run_model_lightgbm(treino_path, teste_path, useGridSearch=True, return_details=False):
     df_train = pd.read_csv(treino_path)
     df_test  = pd.read_csv(teste_path)
 
@@ -68,4 +68,19 @@ def run_model_lightgbm(treino_path, teste_path, useGridSearch=True):
     accuracy = accuracy_score(y_test, y_pred)
     f1       = f1_score(y_test, y_pred, average='weighted')
 
-    return accuracy, f1, best_params
+    if not return_details:
+        return accuracy, f1, best_params
+
+    positive_proba = None
+    if hasattr(model, 'predict_proba'):
+        proba = model.predict_proba(X_test)
+        if proba.shape[1] > 1:
+            positive_proba = proba[:, 1].tolist()
+
+    details = {
+        'y_true': y_test.tolist(),
+        'y_pred': y_pred.tolist(),
+        'prob_1': positive_proba,
+    }
+
+    return accuracy, f1, best_params, details

@@ -26,7 +26,7 @@ def get_hyper_params_svm(X_train, y_train):
 
     return best_params
 
-def run_model_svm(treino_path, teste_path, useGridSearch=True):
+def run_model_svm(treino_path, teste_path, useGridSearch=True, return_details=False):
     #X_train, X_test, y_train, y_test = read_dados(treino_path, teste_path)
 
     df_train = pd.read_csv(treino_path)
@@ -57,11 +57,18 @@ def run_model_svm(treino_path, teste_path, useGridSearch=True):
             kernel=best_params['kernel'],
             gamma=best_params['gamma'],
             degree=best_params['degree'] if 'degree' in best_params else 3,
+            probability=return_details,
             random_state=42
         )
     else:
         # Modelo com hiperparâmetros padrão
-        model = SVC(kernel='rbf', C=1, gamma='scale', random_state=42)
+        model = SVC(
+            kernel='rbf',
+            C=1,
+            gamma='scale',
+            probability=return_details,
+            random_state=42
+        )
         best_params = []
 
     # Treinar o modelo
@@ -74,4 +81,19 @@ def run_model_svm(treino_path, teste_path, useGridSearch=True):
     accuracy = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred, average='weighted')  # Para lidar com desbalanceamento de classes
 
-    return accuracy, f1, best_params
+    if not return_details:
+        return accuracy, f1, best_params
+
+    positive_proba = None
+    if hasattr(model, 'predict_proba'):
+        proba = model.predict_proba(X_test)
+        if proba.shape[1] > 1:
+            positive_proba = proba[:, 1].tolist()
+
+    details = {
+        'y_true': y_test.tolist(),
+        'y_pred': y_pred.tolist(),
+        'prob_1': positive_proba,
+    }
+
+    return accuracy, f1, best_params, details
