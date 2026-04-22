@@ -1,7 +1,6 @@
 import pandas as pd
 import os
 from dados import get_jogos_temporada
-from dados import get_all_jogos
 from dados import formatar_medias
 
 def save_to_csv(data, filepath):
@@ -93,32 +92,26 @@ def descompactar_estatisticas(jogos):
     return dados_formatados
 
 def gerar_arquivos_treino_teste(temporada, qtd_jogos_base, base_path):
-    jogos_treino = get_jogos_temporada(temporada)
-    jogos_teste = get_jogos_temporada(temporada)
+    jogos = get_jogos_temporada(temporada)
     
-    # Formatar os jogos com médias para treino
-    jogos_treino_formatados = formatar_medias(jogos_treino, True, qtd_jogos_base)
-    jogos_teste_formatados = formatar_medias(jogos_teste, False, qtd_jogos_base)
+    jogos_formatados = formatar_medias(jogos, True, qtd_jogos_base)
 
     indice = qtd_jogos_base
     num_arquivo = 1
     
-    while indice < (len(jogos_treino_formatados) - 1):
-        treino = jogos_treino_formatados[0:indice]
-        teste = [jogos_teste_formatados[indice + 1]]
+    while indice < (len(jogos_formatados) - 1):
+        treino = jogos_formatados[0:indice]
+        teste  = [jogos_formatados[indice]]
 
         treino_formatado = descompactar_estatisticas(treino)
-        teste_formatado = descompactar_estatisticas(teste)
+        teste_formatado  = descompactar_estatisticas(teste)
 
-    
-        final_path = os.path.join(base_path, 'data', 'experimento_03', str(qtd_jogos_base), temporada, f'{indice}-1')
-        
-        # Definir o caminho do diretório para salvar os arquivos
-        temporada_path = os.path.join(final_path)
-        
-        # Salvar os arquivos de treino e teste
-        save_to_csv(treino_formatado, f'{temporada_path}/treino_{num_arquivo}.csv')
-        save_to_csv(teste_formatado, f'{temporada_path}/teste_{num_arquivo}.csv')
+        final_path = os.path.join(
+            base_path, 'data', 'experimento_03',
+            str(qtd_jogos_base), temporada, f'{indice}-1'
+        )
+        save_to_csv(treino_formatado, f'{final_path}/treino_{num_arquivo}.csv')
+        save_to_csv(teste_formatado,  f'{final_path}/teste_{num_arquivo}.csv')
 
         indice += 1
         num_arquivo += 1

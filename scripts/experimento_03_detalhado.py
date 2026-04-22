@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import f1_score
 
 from experimentos import save_results_csv
 from svm import run_model_svm
@@ -29,6 +30,12 @@ MODELOS = {
     'regressao_logistica': run_model_regressao_logistica,
     'lightgbm': run_model_lightgbm,
 }
+
+# Controle de saída:
+# - INCLUDE_TEAM_METADATA=False evita passar a impressão de que nome do time foi usado como feature.
+# - GENERATE_SUMMARY_CSV=True salva um segundo CSV agregado por temporada (visão macro).
+INCLUDE_TEAM_METADATA = False
+GENERATE_SUMMARY_CSV = True
 
 
 def numeric_sort_key(value):
@@ -56,6 +63,14 @@ def build_prediction_rows(modelo, janela, temporada, subpasta, treino_file, test
     prob_1 = details.get('prob_1')
 
     for index in range(len(y_true)):
+        prob_classe_1 = float(prob_1[index]) if prob_1 is not None else None
+        prob_prevista = (
+            prob_classe_1 if int(y_pred[index]) == 1 else (1.0 - prob_classe_1)
+        ) if prob_classe_1 is not None else None
+        confianca = (
+            abs(prob_classe_1 - 0.5) * 2.0
+        ) if prob_classe_1 is not None else None
+
         row = {
             'Modelo': modelo,
             'Janela Incremental': janela,
@@ -66,13 +81,23 @@ def build_prediction_rows(modelo, janela, temporada, subpasta, treino_file, test
             'Posicao no Teste': index + 1,
             'Data Jogo': teste_df.iloc[index]['data'] if 'data' in teste_df.columns else None,
             'Round': teste_df.iloc[index]['round'] if 'round' in teste_df.columns else None,
-            'Equipe Casa': teste_df.iloc[index]['equipe_casa'] if 'equipe_casa' in teste_df.columns else None,
-            'Equipe Visitante': teste_df.iloc[index]['equipe_visitante'] if 'equipe_visitante' in teste_df.columns else None,
             'Resultado Real': int(y_true[index]),
             'Previsao': int(y_pred[index]),
             'Acertou': int(y_true[index] == y_pred[index]),
-            'Probabilidade Classe 1': float(prob_1[index]) if prob_1 is not None else None,
+            'Probabilidade Classe 1': prob_classe_1,
+            'Probabilidade da Classe Prevista': prob_prevista,
+            'Confianca da Previsao (0-1)': confianca,
         }
+
+        # Metadado opcional apenas para rastreabilidade/plot; nao entra no treinamento.
+        if INCLUDE_TEAM_METADATA:
+            row['Meta Equipe Casa (nao feature)'] = (
+                teste_df.iloc[index]['equipe_casa'] if 'equipe_casa' in teste_df.columns else None
+            )
+            row['Meta Equipe Visitante (nao feature)'] = (
+                teste_df.iloc[index]['equipe_visitante'] if 'equipe_visitante' in teste_df.columns else None
+            )
+
         rows.append(row)
 
     return rows
@@ -118,6 +143,10 @@ def run_model_for_directory(modelo, janela, temporada, data_dir, runner):
 
 def add_running_metrics(predictions_df):
     predictions_df = predictions_df.copy()
+    predictions_df = predictions_df.sort_values(
+        by=['Modelo', 'Janela Incremental', 'Temporada', 'Data Jogo', 'Round', 'Subpasta', 'Posicao no Teste'],
+        kind='mergesort'
+    )
     predictions_df['Ordem Jogo Temporada'] = (
         predictions_df
         .groupby(['Modelo', 'Janela Incremental', 'Temporada'])
@@ -136,17 +165,26 @@ def add_running_metrics(predictions_df):
 
 
 def build_summary(predictions_df):
-    grouped = (
-        predictions_df
-        .groupby(['Modelo', 'Janela Incremental', 'Temporada'], as_index=False)
-        .agg(
-            Jogos=('Acertou', 'size'),
-            Acertos=('Acertou', 'sum'),
-            Acuracia=('Acertou', 'mean')
-        )
-    )
-    grouped['F1-Score'] = np.nan
-    return grouped
+    rows = []
+
+    grouped = predictions_df.groupby(['Modelo', 'Janela Incremental', 'Temporada'])
+    for (modelo, janela, temporada), group_df in grouped:
+        y_true = group_df['Resultado Real'].astype(int).tolist()
+        y_pred = group_df['Previsao'].astype(int).tolist()
+        acuracia = float(group_df['Acertou'].mean())
+        f1 = float(f1_score(y_true, y_pred, average='weighted', zero_division=0))
+
+        rows.append({
+            'Modelo': modelo,
+            'Janela Incremental': janela,
+            'Temporada': temporada,
+            'Jogos': int(len(group_df)),
+            'Acertos': int(group_df['Acertou'].sum()),
+            'Acuracia': acuracia,
+            'F1-Score': f1,
+        })
+
+    return pd.DataFrame(rows)
 
 
 if __name__ == '__main__':
@@ -154,6 +192,10 @@ if __name__ == '__main__':
     base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     detailed_output_dir = os.path.join(base_path, 'results', 'experimento_03_detalhado')
     os.makedirs(detailed_output_dir, exist_ok=True)
+    print(
+        f'[INFO] INCLUDE_TEAM_METADATA={INCLUDE_TEAM_METADATA} | '
+        f'GENERATE_SUMMARY_CSV={GENERATE_SUMMARY_CSV}'
+    )
 
     for modelo, runner in MODELOS.items():
         print(f'\n{"=" * 70}')
@@ -204,19 +246,19 @@ if __name__ == '__main__':
         predictions_df = pd.DataFrame(all_rows)
         predictions_df = add_running_metrics(predictions_df)
 
-        summary_df = build_summary(predictions_df)
-
         detailed_path = os.path.join(
             detailed_output_dir,
             f'{modelo}_experimento_03_predicoes_detalhadas.csv'
         )
-        summary_path = os.path.join(
-            detailed_output_dir,
-            f'{modelo}_experimento_03_resumo_temporada.csv'
-        )
-
         save_results_csv(detailed_path, predictions_df.to_dict('records'))
-        save_results_csv(summary_path, summary_df.to_dict('records'))
+
+        if GENERATE_SUMMARY_CSV:
+            summary_df = build_summary(predictions_df)
+            summary_path = os.path.join(
+                detailed_output_dir,
+                f'{modelo}_experimento_03_resumo_temporada.csv'
+            )
+            save_results_csv(summary_path, summary_df.to_dict('records'))
 
     end_time = time.time()
     print(f'\nTempo total do modo detalhado: {end_time - start_time:.2f} segundos')
