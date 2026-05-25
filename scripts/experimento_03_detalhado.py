@@ -33,7 +33,7 @@ MODELOS = {
     'lightgbm': run_model_lightgbm,
 }
 
-# Controle de saída:
+# Controle de saida:
 # - INCLUDE_TEAM_METADATA=False evita passar a impressão de que nome do time foi usado como feature.
 # - GENERATE_SUMMARY_CSV=True salva um segundo CSV agregado por temporada (visão macro).
 INCLUDE_TEAM_METADATA = False
@@ -58,7 +58,7 @@ def list_sorted_dirs(directory):
     return sorted(dirs, key=numeric_sort_key)
 
 
-def build_prediction_rows(modelo, janela, temporada, subpasta, treino_file, teste_file, teste_df, details):
+def build_prediction_rows(modelo, janela, temporada, subpasta, teste_file, teste_df, details):
     rows = []
     y_true = details['y_true']
     y_pred = details['y_pred']
@@ -66,29 +66,19 @@ def build_prediction_rows(modelo, janela, temporada, subpasta, treino_file, test
 
     for index in range(len(y_true)):
         prob_classe_1 = float(prob_1[index]) if prob_1 is not None else None
-        prob_prevista = (
-            prob_classe_1 if int(y_pred[index]) == 1 else (1.0 - prob_classe_1)
-        ) if prob_classe_1 is not None else None
-        confianca = (
-            abs(prob_classe_1 - 0.5) * 2.0
-        ) if prob_classe_1 is not None else None
 
         row = {
             'Modelo': modelo,
             'Janela Incremental': janela,
             'Temporada': temporada,
             'Subpasta': subpasta,
-            'Treino Arquivo': treino_file,
             'Teste Arquivo': teste_file,
             'Posicao no Teste': index + 1,
             'Data Jogo': teste_df.iloc[index]['data'] if 'data' in teste_df.columns else None,
             'Round': teste_df.iloc[index]['round'] if 'round' in teste_df.columns else None,
             'Resultado Real': int(y_true[index]),
             'Previsao': int(y_pred[index]),
-            'Acertou': int(y_true[index] == y_pred[index]),
             'Probabilidade Classe 1': prob_classe_1,
-            'Probabilidade da Classe Prevista': prob_prevista,
-            'Confianca da Previsao (0-1)': confianca,
         }
 
         # Metadado opcional apenas para rastreabilidade/plot; nao entra no treinamento.
@@ -133,7 +123,6 @@ def run_model_for_directory(modelo, janela, temporada, data_dir, runner):
                 janela=janela,
                 temporada=temporada,
                 subpasta=subpasta,
-                treino_file=treino_file,
                 teste_file=teste_file,
                 teste_df=teste_df,
                 details=details
@@ -155,9 +144,10 @@ def add_running_metrics(predictions_df):
         .cumcount() + 1
     )
 
+    acertou = (predictions_df['Resultado Real'] == predictions_df['Previsao']).astype(int)
     predictions_df['Acuracia Acumulada'] = (
-        predictions_df
-        .groupby(['Modelo', 'Janela Incremental', 'Temporada'])['Acertou']
+        acertou
+        .groupby([predictions_df['Modelo'], predictions_df['Janela Incremental'], predictions_df['Temporada']])
         .expanding()
         .mean()
         .reset_index(level=[0, 1, 2], drop=True)
@@ -173,7 +163,7 @@ def build_summary(predictions_df):
     for (modelo, janela, temporada), group_df in grouped:
         y_true = group_df['Resultado Real'].astype(int).tolist()
         y_pred = group_df['Previsao'].astype(int).tolist()
-        acuracia = float(group_df['Acertou'].mean())
+        acuracia = float((group_df['Resultado Real'] == group_df['Previsao']).mean())
         f1 = float(f1_score(y_true, y_pred, average='weighted', zero_division=0))
 
         rows.append({
@@ -213,7 +203,7 @@ if __name__ == '__main__':
                 )
 
                 if not os.path.exists(temporada_dir):
-                    print(f'[AVISO] Pasta nÃ£o encontrada: {temporada_dir}')
+                    print(f'[AVISO] Pasta nao encontrada: {temporada_dir}')
                     continue
 
                 subpastas = list_sorted_dirs(temporada_dir)
@@ -234,15 +224,15 @@ if __name__ == '__main__':
                 all_rows.extend(season_rows)
 
                 if season_rows:
-                    season_accuracy = np.mean([row['Acertou'] for row in season_rows])
+                    season_accuracy = np.mean([int(row['Resultado Real'] == row['Previsao']) for row in season_rows])
                     print(
                         f'[{modelo}] K={janela} | {temporada} | '
                         f'Jogos avaliados: {len(season_rows)} | '
-                        f'AcurÃ¡cia: {season_accuracy:.4f}'
+                        f'Acuracia: {season_accuracy:.4f}'
                     )
 
         if not all_rows:
-            print(f'[AVISO] Nenhuma previsÃ£o detalhada foi gerada para {modelo}.')
+            print(f'[AVISO] Nenhuma previsao detalhada foi gerada para {modelo}.')
             continue
 
         predictions_df = pd.DataFrame(all_rows)
