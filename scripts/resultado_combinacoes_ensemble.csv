@@ -1,0 +1,32 @@
+Rank,Combinacao,N_Modelos,Acc_Majoritario,Acc_Media_Prob,Acc_Ponderado,Melhor_Acc,Melhor_Estrategia
+1,extra_trees + regressao_logistica + svm,3,0.6409,0.6334,0.6384,0.6409,Voto Majoritário
+2,svm,1,0.6390274314214464,0.6390274314214464,0.6390274314214464,0.6390274314214464,Voto Majoritário
+3,extra_trees + regressao_logistica,2,0.6234,0.6365,0.6365,0.6365,Média Probabilidades
+4,extra_trees + knn + regressao_logistica + svm,4,0.6322,0.6359,0.6365,0.6365,Ponderado Confiança
+5,extra_trees + knn + regressao_logistica,3,0.6278,0.6353,0.6353,0.6353,Média Probabilidades
+6,extra_trees + svm,2,0.6353,0.6291,0.6347,0.6353,Voto Majoritário
+7,lightgbm + svm,2,0.6347,0.6116,0.6216,0.6347,Voto Majoritário
+8,lightgbm + regressao_logistica + svm,3,0.6347,0.6309,0.6334,0.6347,Voto Majoritário
+9,extra_trees + lightgbm + svm,3,0.634,0.6147,0.6203,0.634,Voto Majoritário
+10,extra_trees + knn + lightgbm + regressao_logistica + svm,5,0.634,0.6297,0.6303,0.634,Voto Majoritário
+11,knn + regressao_logistica + svm,3,0.6297,0.6297,0.6328,0.6328,Ponderado Confiança
+12,extra_trees + knn + svm,3,0.6328,0.6297,0.6315,0.6328,Voto Majoritário
+13,extra_trees + lightgbm + regressao_logistica + svm,4,0.6328,0.6297,0.6328,0.6328,Voto Majoritário
+14,extra_trees + knn + lightgbm + svm,4,0.6328,0.6228,0.6241,0.6328,Voto Majoritário
+15,knn + lightgbm + regressao_logistica + svm,4,0.6247,0.6259,0.6322,0.6322,Ponderado Confiança
+16,extra_trees + lightgbm + regressao_logistica,3,0.6291,0.6322,0.6322,0.6322,Média Probabilidades
+17,extra_trees + knn + lightgbm + regressao_logistica,4,0.6216,0.6315,0.6315,0.6315,Média Probabilidades
+18,regressao_logistica + svm,2,0.6315,0.6241,0.6309,0.6315,Voto Majoritário
+19,knn + lightgbm + svm,3,0.6272,0.6097,0.6172,0.6272,Voto Majoritário
+20,extra_trees,1,0.6271820448877805,0.6271820448877805,0.6271820448877805,0.6271820448877805,Voto Majoritário
+21,extra_trees + knn + lightgbm,3,0.6259,0.6253,0.6253,0.6259,Voto Majoritário
+22,knn + svm,2,0.6247,0.6072,0.6122,0.6247,Voto Majoritário
+23,lightgbm + regressao_logistica,2,0.6203,0.6216,0.6216,0.6216,Média Probabilidades
+24,knn + lightgbm + regressao_logistica,3,0.6135,0.6203,0.6203,0.6203,Média Probabilidades
+25,extra_trees + lightgbm,2,0.6197,0.6197,0.6197,0.6197,Voto Majoritário
+26,regressao_logistica,1,0.6190773067331671,0.6190773067331671,0.6190773067331671,0.6190773067331671,Voto Majoritário
+27,extra_trees + knn,2,0.616,0.6178,0.6178,0.6178,Média Probabilidades
+28,knn + regressao_logistica,2,0.6128,0.616,0.616,0.616,Média Probabilidades
+29,knn + lightgbm,2,0.6047,0.606,0.606,0.606,Média Probabilidades
+30,lightgbm,1,0.6053615960099751,0.6053615960099751,0.6053615960099751,0.6053615960099751,Voto Majoritário
+31,knn,1,0.5891521197007481,0.5891521197007481,0.5891521197007481,0.5891521197007481,Voto Majoritário
