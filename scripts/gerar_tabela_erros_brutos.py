@@ -15,21 +15,13 @@ Adiciona duas colunas:
 import pandas as pd
 import os
 
-# ─────────────────────────────────────────────
-# 1. CONFIGURAÇÃO
-# ─────────────────────────────────────────────
-
 PASTA = r'C:\Users\pedro.negreiro\Documents\stack-ensemble-prediction\results\tabela_votos_por_jogo\janela_15'
 ARQUIVO_ENTRADA = os.path.join(PASTA, 'tabela_votos_janela_15.xlsx')
 ARQUIVO_SAIDA   = os.path.join(PASTA, 'tabela_erros_brutos_janela_15.xlsx')
 
-LIMITE_CONFIANCA = 70  # em % — confiança mínima para considerar "errou feio"
+LIMITE_CONFIANCA = 70  # para considerar um erro como "bruto", o modelo deve ter previsto com confiança >= LIMITE_CONFIANCA
 
 MODELOS = ["SVM", "KNN", "ExtraTrees", "LightGBM", "Regressao"]
-
-# ─────────────────────────────────────────────
-# 2. PROCESSA CADA TEMPORADA (ABA) E FILTRA
-# ─────────────────────────────────────────────
 
 xls = pd.ExcelFile(ARQUIVO_ENTRADA)
 
